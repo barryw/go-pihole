@@ -1,0 +1,25 @@
+when:
+  - event: tag
+    branch: main
+
+labels:
+  platform: linux/amd64
+
+clone:
+  git:
+    image: woodpeckerci/plugin-git
+    settings:
+      tags: true
+
+steps:
+  - name: create-release
+    image: ghcr.io/cocogitto/cog:latest
+    environment:
+      GITHUB_TOKEN:
+        from_secret: github_token
+    commands:
+      - apk add --no-cache github-cli
+      - VERSION=${CI_COMMIT_TAG}
+      - RELEASE_NOTES=$(cog changelog --at "$VERSION" 2>/dev/null || echo "Release $VERSION")
+      - gh release create "$VERSION" --repo ${CI_REPO} --title "go-pihole $VERSION" --notes "$RELEASE_NOTES" 2>/dev/null || echo "Release exists"
+      - echo "Release $VERSION published"
