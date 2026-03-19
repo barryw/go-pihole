@@ -110,8 +110,3 @@ func parseError(resp *http.Response) error {
 
 	return &APIError{StatusCode: resp.StatusCode, Key: "unknown", Message: string(bodyBytes)}
 }
-
-// authenticate is implemented in auth.go
-func (c *Client) authenticate() error {
-	return errors.New("not implemented")
-}
