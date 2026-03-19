@@ -1,16 +1,16 @@
-labels:
-  platform: linux/amd64
-
 when:
   - event: [push, pull_request, manual]
 
+labels:
+  platform: linux/amd64
+
 steps:
-  lint:
+  - name: lint
     image: golang:1.24
     commands:
       - go vet ./...
 
-  test:
+  - name: test
     image: golang:1.24
     commands:
       - go test -v -race -count=1 ./...
