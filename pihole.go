@@ -16,6 +16,8 @@ type Client struct {
 	httpClient *http.Client
 	sid        string
 	mu         sync.Mutex
+	authOnce   sync.Once
+	authErr    error
 }
 
 func NewClient(baseURL, password string) (*Client, error) {
@@ -41,12 +43,24 @@ type apiErrorResponse struct {
 	} `json:"error"`
 }
 
+// Authenticate establishes a session with the PiHole API.
+// Call this once after creating the client to avoid rate limiting
+// when making many concurrent requests. If not called explicitly,
+// authentication happens automatically on the first request.
+func (c *Client) Authenticate() error {
+	return c.authenticate()
+}
+
 // doRequest executes an HTTP request with authentication.
-// Auto-authenticates if no session, retries once on 401.
+// Auto-authenticates if no session (using sync.Once to prevent
+// parallel auth storms), retries once on 401.
 func (c *Client) doRequest(method, path string, body io.Reader) (*http.Response, error) {
 	if c.sid == "" {
-		if err := c.authenticate(); err != nil {
-			return nil, err
+		c.authOnce.Do(func() {
+			c.authErr = c.authenticate()
+		})
+		if c.authErr != nil {
+			return nil, c.authErr
 		}
 	}
 
