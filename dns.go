@@ -70,10 +70,15 @@ func (c *Client) CreateDNSRecord(ip, domain string) error {
 		return fmt.Errorf("creating DNS record: %w", err)
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusCreated {
-		return parseError(resp)
+	// 201 = created, 400 with "already present" = idempotent success
+	if resp.StatusCode == http.StatusCreated {
+		return nil
 	}
-	return nil
+	apiErr := parseError(resp)
+	if e, ok := apiErr.(*APIError); ok && e.StatusCode == http.StatusBadRequest && e.Key == "bad_request" && strings.Contains(e.Message, "already present") {
+		return nil
+	}
+	return apiErr
 }
 
 func (c *Client) DeleteDNSRecord(ip, domain string) error {

@@ -68,10 +68,14 @@ func (c *Client) CreateCNAMERecord(domain, target string, ttl int) error {
 		return fmt.Errorf("creating CNAME record: %w", err)
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusCreated {
-		return parseError(resp)
+	if resp.StatusCode == http.StatusCreated {
+		return nil
 	}
-	return nil
+	apiErr := parseError(resp)
+	if e, ok := apiErr.(*APIError); ok && e.StatusCode == http.StatusBadRequest && strings.Contains(e.Message, "already present") {
+		return nil
+	}
+	return apiErr
 }
 
 func (c *Client) DeleteCNAMERecord(domain, target string, ttl int) error {
