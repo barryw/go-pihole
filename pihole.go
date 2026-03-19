@@ -5,9 +5,11 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"strings"
 	"sync"
+	"time"
 )
 
 type Client struct {
@@ -51,9 +53,14 @@ func (c *Client) Authenticate() error {
 	return c.authenticate()
 }
 
+const (
+	maxRetries    = 5
+	retryBaseWait = 2 * time.Second
+)
+
 // doRequest executes an HTTP request with authentication.
 // Auto-authenticates if no session (using sync.Once to prevent
-// parallel auth storms), retries once on 401.
+// parallel auth storms), retries on transient errors and 401.
 func (c *Client) doRequest(method, path string, body io.Reader) (*http.Response, error) {
 	if c.sid == "" {
 		c.authOnce.Do(func() {
@@ -64,27 +71,71 @@ func (c *Client) doRequest(method, path string, body io.Reader) (*http.Response,
 		}
 	}
 
-	resp, err := c.executeRequest(method, path, body)
-	if err != nil {
-		return nil, err
-	}
+	var resp *http.Response
+	var err error
 
-	if resp.StatusCode == http.StatusUnauthorized {
-		resp.Body.Close()
-		if err := c.authenticate(); err != nil {
-			return nil, err
-		}
+	for attempt := 0; attempt <= maxRetries; attempt++ {
 		resp, err = c.executeRequest(method, path, body)
 		if err != nil {
+			if isTransientError(err) && attempt < maxRetries {
+				time.Sleep(retryBaseWait * time.Duration(attempt+1))
+				continue
+			}
 			return nil, err
 		}
+
 		if resp.StatusCode == http.StatusUnauthorized {
 			resp.Body.Close()
-			return nil, &ErrAuth{Message: "session expired and re-authentication failed"}
+			if err := c.authenticate(); err != nil {
+				if isTransientError(err) && attempt < maxRetries {
+					time.Sleep(retryBaseWait * time.Duration(attempt+1))
+					continue
+				}
+				return nil, err
+			}
+			resp, err = c.executeRequest(method, path, body)
+			if err != nil {
+				if isTransientError(err) && attempt < maxRetries {
+					time.Sleep(retryBaseWait * time.Duration(attempt+1))
+					continue
+				}
+				return nil, err
+			}
+			if resp.StatusCode == http.StatusUnauthorized {
+				resp.Body.Close()
+				return nil, &ErrAuth{Message: "session expired and re-authentication failed"}
+			}
 		}
+
+		// Success or non-transient error
+		break
 	}
 
 	return resp, nil
+}
+
+// isTransientError returns true for network errors that may resolve on retry
+// (connection refused, EOF, timeout) — typically caused by PiHole reloading
+// its config after a write operation.
+func isTransientError(err error) bool {
+	if err == nil {
+		return false
+	}
+	// Connection refused, reset, etc.
+	var netErr *net.OpError
+	if errors.As(err, &netErr) {
+		return true
+	}
+	// EOF during read
+	if errors.Is(err, io.EOF) || errors.Is(err, io.ErrUnexpectedEOF) {
+		return true
+	}
+	// String matching as fallback for wrapped errors
+	msg := err.Error()
+	return strings.Contains(msg, "connection refused") ||
+		strings.Contains(msg, "EOF") ||
+		strings.Contains(msg, "connection reset") ||
+		strings.Contains(msg, "broken pipe")
 }
 
 func (c *Client) executeRequest(method, path string, body io.Reader) (*http.Response, error) {

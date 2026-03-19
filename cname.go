@@ -62,7 +62,7 @@ func (c *Client) GetCNAMERecord(domain string) (*CNAMERecord, error) {
 
 func (c *Client) CreateCNAMERecord(domain, target string, ttl int) error {
 	entry := formatCNAMEEntry(domain, target, ttl)
-	path := fmt.Sprintf("/config/dns/cnameRecords/%s", url.PathEscape(entry))
+	path := fmt.Sprintf("/config/dns/cnameRecords/%s?restart=false", url.PathEscape(entry))
 	resp, err := c.doRequest(http.MethodPut, path, nil)
 	if err != nil {
 		return fmt.Errorf("creating CNAME record: %w", err)
@@ -80,7 +80,7 @@ func (c *Client) CreateCNAMERecord(domain, target string, ttl int) error {
 
 func (c *Client) DeleteCNAMERecord(domain, target string, ttl int) error {
 	entry := formatCNAMEEntry(domain, target, ttl)
-	path := fmt.Sprintf("/config/dns/cnameRecords/%s", url.PathEscape(entry))
+	path := fmt.Sprintf("/config/dns/cnameRecords/%s?restart=false", url.PathEscape(entry))
 	resp, err := c.doRequest(http.MethodDelete, path, nil)
 	if err != nil {
 		return fmt.Errorf("deleting CNAME record: %w", err)

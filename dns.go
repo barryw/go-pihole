@@ -64,7 +64,7 @@ func (c *Client) GetDNSRecord(domain string) (*DNSRecord, error) {
 
 func (c *Client) CreateDNSRecord(ip, domain string) error {
 	entry := fmt.Sprintf("%s %s", ip, domain)
-	path := fmt.Sprintf("/config/dns/hosts/%s", url.PathEscape(entry))
+	path := fmt.Sprintf("/config/dns/hosts/%s?restart=false", url.PathEscape(entry))
 	resp, err := c.doRequest(http.MethodPut, path, nil)
 	if err != nil {
 		return fmt.Errorf("creating DNS record: %w", err)
@@ -83,7 +83,7 @@ func (c *Client) CreateDNSRecord(ip, domain string) error {
 
 func (c *Client) DeleteDNSRecord(ip, domain string) error {
 	entry := fmt.Sprintf("%s %s", ip, domain)
-	path := fmt.Sprintf("/config/dns/hosts/%s", url.PathEscape(entry))
+	path := fmt.Sprintf("/config/dns/hosts/%s?restart=false", url.PathEscape(entry))
 	resp, err := c.doRequest(http.MethodDelete, path, nil)
 	if err != nil {
 		return fmt.Errorf("deleting DNS record: %w", err)
