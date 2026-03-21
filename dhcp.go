@@ -88,7 +88,7 @@ func (c *Client) GetDHCPStaticLease(mac string) (*DHCPStaticLease, error) {
 
 func (c *Client) CreateDHCPStaticLease(lease DHCPStaticLease) error {
 	entry := formatDHCPEntry(lease)
-	path := fmt.Sprintf("/config/dhcp/hosts/%s", url.PathEscape(entry))
+	path := fmt.Sprintf("/config/dhcp/hosts/%s?restart=false", url.PathEscape(entry))
 	resp, err := c.doRequest(http.MethodPut, path, nil)
 	if err != nil {
 		return fmt.Errorf("creating DHCP static lease: %w", err)
@@ -106,7 +106,7 @@ func (c *Client) CreateDHCPStaticLease(lease DHCPStaticLease) error {
 
 func (c *Client) DeleteDHCPStaticLease(lease DHCPStaticLease) error {
 	entry := formatDHCPEntry(lease)
-	path := fmt.Sprintf("/config/dhcp/hosts/%s", url.PathEscape(entry))
+	path := fmt.Sprintf("/config/dhcp/hosts/%s?restart=false", url.PathEscape(entry))
 	resp, err := c.doRequest(http.MethodDelete, path, nil)
 	if err != nil {
 		return fmt.Errorf("deleting DHCP static lease: %w", err)
