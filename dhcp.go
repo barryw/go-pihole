@@ -104,6 +104,18 @@ func (c *Client) CreateDHCPStaticLease(lease DHCPStaticLease) error {
 	return apiErr
 }
 
+func (c *Client) UpdateDHCPStaticLease(oldLease, newLease DHCPStaticLease) error {
+	if err := c.DeleteDHCPStaticLease(oldLease); err != nil {
+		return fmt.Errorf("updating DHCP static lease (delete old): %w", err)
+	}
+	if err := c.CreateDHCPStaticLease(newLease); err != nil {
+		// Attempt to restore the old lease on failure
+		_ = c.CreateDHCPStaticLease(oldLease)
+		return fmt.Errorf("updating DHCP static lease (create new): %w", err)
+	}
+	return nil
+}
+
 func (c *Client) DeleteDHCPStaticLease(lease DHCPStaticLease) error {
 	entry := formatDHCPEntry(lease)
 	path := fmt.Sprintf("/config/dhcp/hosts/%s?restart=false", url.PathEscape(entry))
