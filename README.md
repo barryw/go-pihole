@@ -1,7 +1,7 @@
 # go-pihole
 
 [![Go Reference](https://pkg.go.dev/badge/github.com/barryw/go-pihole.svg)](https://pkg.go.dev/github.com/barryw/go-pihole)
-[![CI](https://github.com/barryw/go-pihole/actions/workflows/ci.yml/badge.svg)](https://github.com/barryw/go-pihole/actions/workflows/ci.yml)
+[![Build Status](https://ci.barrywalker.io/api/badges/barryw/go-pihole/status.svg)](https://ci.barrywalker.io/repos/barryw/go-pihole)
 [![License: MPL-2.0](https://img.shields.io/badge/License-MPL--2.0-blue.svg)](LICENSE)
 
 Go client library for the [Pi-hole](https://pi-hole.net/) v6 HTTP API. Provides typed access to DNS records, CNAME records, groups, adlists, domain allow/deny lists, and clients.
