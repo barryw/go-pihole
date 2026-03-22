@@ -26,5 +26,5 @@ steps:
       - git config user.name "Woodpecker CI"
       - git config user.email "ci@barrywalker.io"
       - git remote set-url origin "https://x-access-token:$GITHUB_TOKEN@github.com/${CI_REPO}.git"
-      - cog bump --auto && git push --follow-tags || echo "No version bump needed"
+      - cog bump --auto --skip-ci && git push origin main && git push origin --tags || echo "No version bump needed"
       - echo "Current version:" && cog get-version
