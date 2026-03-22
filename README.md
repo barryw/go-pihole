@@ -13,7 +13,7 @@ Go client library (v6 API) for the [Pi-hole](https://pi-hole.net/) v6 HTTP API. 
 go get github.com/barryw/go-pihole
 ```
 
-Requires Go 1.24 or later.
+Requires Go 1.25 or later.
 
 ## Quick start
 
@@ -337,7 +337,7 @@ if errors.As(err, &authErr) {
 
 ## Requirements
 
-- **Go 1.24+**
+- **Go 1.25+**
 - **Pi-hole v6** with the HTTP API enabled
 - An **app-password** configured in the Pi-hole web UI (Settings > API)
 - **app_sudo** enabled for write operations (enabled by default when using app-passwords)
