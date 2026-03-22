@@ -2,6 +2,12 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## v0.2.1 - 2026-03-22
+#### Bug Fixes
+- update CI badge to Woodpecker - (336544e) - Barry Walker
+
+- - -
+
 ## v0.2.0 - 2026-03-22
 #### Features
 - add UpdateDHCPStaticLease method - (1dd455a) - Barry Walker
