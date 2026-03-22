@@ -2,6 +2,14 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## v0.2.3 - 2026-03-22
+#### Bug Fixes
+- force pull plugin image to avoid stale cache - (d3c98a8) - Barry Walker
+#### Documentation
+- clarify v6 API in README description - (f3ebec5) - Barry Walker
+
+- - -
+
 ## v0.2.2 - 2026-03-22
 #### Bug Fixes
 - add release version badge to README - (4a53c58) - Barry Walker
