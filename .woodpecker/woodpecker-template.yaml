@@ -1,0 +1,3 @@
+template: release-go-library
+data:
+  go_version: "1.25"
