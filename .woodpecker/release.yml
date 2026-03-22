@@ -19,6 +19,7 @@ depends_on:
 steps:
   - name: release
     image: ghcr.io/barryw/woodpecker-release:latest
+    pull: true
     environment:
       PLUGIN_GITHUB_TOKEN:
         from_secret: github_token
