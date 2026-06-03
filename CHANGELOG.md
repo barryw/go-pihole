@@ -2,6 +2,12 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## v1.0.1 - 2026-06-03
+#### Bug Fixes
+- retry authentication on transient errors - (9610c13) - Barry Walker
+
+- - -
+
 ## v1.0.0 - 2026-06-03
 #### Documentation
 - update Go version requirement to 1.25 - (35861dd) - Barry Walker
