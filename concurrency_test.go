@@ -200,6 +200,35 @@ func TestConcurrentRequestsNoRace(t *testing.T) {
 	wg.Wait()
 }
 
+// TestAuthenticateRetriesTransient verifies that authentication survives a
+// transient connection drop — PiHole-FTL restarts when config changes (e.g. a
+// DNS upstreams update), briefly refusing connections, and auth must retry
+// rather than fail outright.
+func TestAuthenticateRetriesTransient(t *testing.T) {
+	var authCalls int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if atomic.AddInt32(&authCalls, 1) == 1 {
+			// Simulate FTL mid-restart: drop the connection before responding.
+			if hj, ok := w.(http.Hijacker); ok {
+				conn, _, _ := hj.Hijack()
+				_ = conn.Close()
+			}
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"session":{"valid":true,"sid":"sid","csrf":"c"}}`))
+	}))
+	defer server.Close()
+
+	client, _ := NewClient(server.URL, "pw")
+	if err := client.Authenticate(context.Background()); err != nil {
+		t.Fatalf("expected auth to survive a transient connection drop, got: %v", err)
+	}
+	if got := atomic.LoadInt32(&authCalls); got < 2 {
+		t.Fatalf("expected auth to retry (>=2 attempts), got %d", got)
+	}
+}
+
 // TestHTTPClientHasTimeout guards against the bare &http.Client{} that could
 // hang forever on a stalled connection.
 func TestHTTPClientHasTimeout(t *testing.T) {

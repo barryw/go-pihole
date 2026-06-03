@@ -29,15 +29,29 @@ func (c *Client) authenticate(ctx context.Context) error {
 	}
 
 	url := fmt.Sprintf("%s/api/auth", c.baseURL)
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(body))
-	if err != nil {
-		return fmt.Errorf("creating auth request: %w", err)
-	}
-	req.Header.Set("Content-Type", "application/json")
 
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return fmt.Errorf("auth request failed: %w", err)
+	var resp *http.Response
+	for attempt := 0; attempt <= maxRetries; attempt++ {
+		req, rerr := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(body))
+		if rerr != nil {
+			return fmt.Errorf("creating auth request: %w", rerr)
+		}
+		req.Header.Set("Content-Type", "application/json")
+
+		resp, err = c.httpClient.Do(req)
+		if err != nil {
+			// PiHole-FTL restarts when its config changes (e.g. a DNS upstreams
+			// update), briefly refusing connections. Retry transient errors so
+			// authentication survives the reload rather than failing outright.
+			if isTransientError(err) && attempt < maxRetries {
+				if werr := waitWithContext(ctx, backoff(attempt)); werr != nil {
+					return werr
+				}
+				continue
+			}
+			return fmt.Errorf("auth request failed: %w", err)
+		}
+		break
 	}
 	defer resp.Body.Close()
 
