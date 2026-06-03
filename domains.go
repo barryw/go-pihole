@@ -1,7 +1,7 @@
 package pihole
 
 import (
-	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -31,8 +31,9 @@ type DomainCreateRequest struct {
 }
 
 type DomainUpdateRequest struct {
-	Type    string `json:"type"`
-	Kind    string `json:"kind"`
+	// Type and Kind are encoded in the request URL, not the body.
+	Type    string `json:"-"`
+	Kind    string `json:"-"`
 	Comment string `json:"comment,omitempty"`
 	Groups  []int  `json:"groups"`
 	Enabled bool   `json:"enabled"`
@@ -42,8 +43,8 @@ type domainsResponse struct {
 	Domains []DomainEntry `json:"domains"`
 }
 
-func (c *Client) ListDomains() ([]DomainEntry, error) {
-	resp, err := c.doRequest(http.MethodGet, "/domains", nil)
+func (c *Client) ListDomains(ctx context.Context) ([]DomainEntry, error) {
+	resp, err := c.doRequest(ctx, http.MethodGet, "/domains", nil)
 	if err != nil {
 		return nil, fmt.Errorf("listing domains: %w", err)
 	}
@@ -58,9 +59,9 @@ func (c *Client) ListDomains() ([]DomainEntry, error) {
 	return result.Domains, nil
 }
 
-func (c *Client) ListDomainsByTypeAndKind(domainType, kind string) ([]DomainEntry, error) {
+func (c *Client) ListDomainsByTypeAndKind(ctx context.Context, domainType, kind string) ([]DomainEntry, error) {
 	path := fmt.Sprintf("/domains/%s/%s", url.PathEscape(domainType), url.PathEscape(kind))
-	resp, err := c.doRequest(http.MethodGet, path, nil)
+	resp, err := c.doRequest(ctx, http.MethodGet, path, nil)
 	if err != nil {
 		return nil, fmt.Errorf("listing domains: %w", err)
 	}
@@ -75,9 +76,9 @@ func (c *Client) ListDomainsByTypeAndKind(domainType, kind string) ([]DomainEntr
 	return result.Domains, nil
 }
 
-func (c *Client) GetDomain(domainType, kind, domain string) (*DomainEntry, error) {
+func (c *Client) GetDomain(ctx context.Context, domainType, kind, domain string) (*DomainEntry, error) {
 	path := fmt.Sprintf("/domains/%s/%s/%s", url.PathEscape(domainType), url.PathEscape(kind), url.PathEscape(domain))
-	resp, err := c.doRequest(http.MethodGet, path, nil)
+	resp, err := c.doRequest(ctx, http.MethodGet, path, nil)
 	if err != nil {
 		return nil, fmt.Errorf("getting domain: %w", err)
 	}
@@ -98,13 +99,13 @@ func (c *Client) GetDomain(domainType, kind, domain string) (*DomainEntry, error
 	return &result.Domains[0], nil
 }
 
-func (c *Client) CreateDomain(req DomainCreateRequest) (*DomainEntry, error) {
+func (c *Client) CreateDomain(ctx context.Context, req DomainCreateRequest) (*DomainEntry, error) {
 	body, err := json.Marshal(req)
 	if err != nil {
 		return nil, fmt.Errorf("marshaling domain: %w", err)
 	}
 	path := fmt.Sprintf("/domains/%s/%s", url.PathEscape(req.Type), url.PathEscape(req.Kind))
-	resp, err := c.doRequest(http.MethodPost, path, bytes.NewReader(body))
+	resp, err := c.doRequest(ctx, http.MethodPost, path, body)
 	if err != nil {
 		return nil, fmt.Errorf("creating domain: %w", err)
 	}
@@ -122,13 +123,13 @@ func (c *Client) CreateDomain(req DomainCreateRequest) (*DomainEntry, error) {
 	return &result.Domains[0], nil
 }
 
-func (c *Client) UpdateDomain(domainType, kind, domain string, req DomainUpdateRequest) (*DomainEntry, error) {
+func (c *Client) UpdateDomain(ctx context.Context, domainType, kind, domain string, req DomainUpdateRequest) (*DomainEntry, error) {
 	body, err := json.Marshal(req)
 	if err != nil {
 		return nil, fmt.Errorf("marshaling domain update: %w", err)
 	}
 	path := fmt.Sprintf("/domains/%s/%s/%s", url.PathEscape(domainType), url.PathEscape(kind), url.PathEscape(domain))
-	resp, err := c.doRequest(http.MethodPut, path, bytes.NewReader(body))
+	resp, err := c.doRequest(ctx, http.MethodPut, path, body)
 	if err != nil {
 		return nil, fmt.Errorf("updating domain: %w", err)
 	}
@@ -146,9 +147,9 @@ func (c *Client) UpdateDomain(domainType, kind, domain string, req DomainUpdateR
 	return &result.Domains[0], nil
 }
 
-func (c *Client) DeleteDomain(domainType, kind, domain string) error {
+func (c *Client) DeleteDomain(ctx context.Context, domainType, kind, domain string) error {
 	path := fmt.Sprintf("/domains/%s/%s/%s", url.PathEscape(domainType), url.PathEscape(kind), url.PathEscape(domain))
-	resp, err := c.doRequest(http.MethodDelete, path, nil)
+	resp, err := c.doRequest(ctx, http.MethodDelete, path, nil)
 	if err != nil {
 		return fmt.Errorf("deleting domain: %w", err)
 	}

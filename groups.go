@@ -1,7 +1,7 @@
 package pihole
 
 import (
-	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -33,8 +33,8 @@ type groupsResponse struct {
 	Groups []Group `json:"groups"`
 }
 
-func (c *Client) ListGroups() ([]Group, error) {
-	resp, err := c.doRequest(http.MethodGet, "/groups", nil)
+func (c *Client) ListGroups(ctx context.Context) ([]Group, error) {
+	resp, err := c.doRequest(ctx, http.MethodGet, "/groups", nil)
 	if err != nil {
 		return nil, fmt.Errorf("listing groups: %w", err)
 	}
@@ -49,9 +49,9 @@ func (c *Client) ListGroups() ([]Group, error) {
 	return result.Groups, nil
 }
 
-func (c *Client) GetGroup(name string) (*Group, error) {
+func (c *Client) GetGroup(ctx context.Context, name string) (*Group, error) {
 	path := fmt.Sprintf("/groups/%s", url.PathEscape(name))
-	resp, err := c.doRequest(http.MethodGet, path, nil)
+	resp, err := c.doRequest(ctx, http.MethodGet, path, nil)
 	if err != nil {
 		return nil, fmt.Errorf("getting group: %w", err)
 	}
@@ -72,12 +72,12 @@ func (c *Client) GetGroup(name string) (*Group, error) {
 	return &result.Groups[0], nil
 }
 
-func (c *Client) CreateGroup(req GroupCreateRequest) (*Group, error) {
+func (c *Client) CreateGroup(ctx context.Context, req GroupCreateRequest) (*Group, error) {
 	body, err := json.Marshal(req)
 	if err != nil {
 		return nil, fmt.Errorf("marshaling group: %w", err)
 	}
-	resp, err := c.doRequest(http.MethodPost, "/groups", bytes.NewReader(body))
+	resp, err := c.doRequest(ctx, http.MethodPost, "/groups", body)
 	if err != nil {
 		return nil, fmt.Errorf("creating group: %w", err)
 	}
@@ -95,13 +95,13 @@ func (c *Client) CreateGroup(req GroupCreateRequest) (*Group, error) {
 	return &result.Groups[0], nil
 }
 
-func (c *Client) UpdateGroup(name string, req GroupUpdateRequest) (*Group, error) {
+func (c *Client) UpdateGroup(ctx context.Context, name string, req GroupUpdateRequest) (*Group, error) {
 	body, err := json.Marshal(req)
 	if err != nil {
 		return nil, fmt.Errorf("marshaling group update: %w", err)
 	}
 	path := fmt.Sprintf("/groups/%s", url.PathEscape(name))
-	resp, err := c.doRequest(http.MethodPut, path, bytes.NewReader(body))
+	resp, err := c.doRequest(ctx, http.MethodPut, path, body)
 	if err != nil {
 		return nil, fmt.Errorf("updating group: %w", err)
 	}
@@ -119,9 +119,9 @@ func (c *Client) UpdateGroup(name string, req GroupUpdateRequest) (*Group, error
 	return &result.Groups[0], nil
 }
 
-func (c *Client) DeleteGroup(name string) error {
+func (c *Client) DeleteGroup(ctx context.Context, name string) error {
 	path := fmt.Sprintf("/groups/%s", url.PathEscape(name))
-	resp, err := c.doRequest(http.MethodDelete, path, nil)
+	resp, err := c.doRequest(ctx, http.MethodDelete, path, nil)
 	if err != nil {
 		return fmt.Errorf("deleting group: %w", err)
 	}

@@ -1,6 +1,7 @@
 package pihole
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -46,8 +47,8 @@ func formatDHCPEntry(lease DHCPStaticLease) string {
 	return fmt.Sprintf("%s,%s", lease.MAC, lease.IP)
 }
 
-func (c *Client) ListDHCPStaticLeases() ([]DHCPStaticLease, error) {
-	resp, err := c.doRequest(http.MethodGet, "/config/dhcp/hosts", nil)
+func (c *Client) ListDHCPStaticLeases(ctx context.Context) ([]DHCPStaticLease, error) {
+	resp, err := c.doRequest(ctx, http.MethodGet, "/config/dhcp/hosts", nil)
 	if err != nil {
 		return nil, fmt.Errorf("listing DHCP static leases: %w", err)
 	}
@@ -72,8 +73,8 @@ func (c *Client) ListDHCPStaticLeases() ([]DHCPStaticLease, error) {
 	return leases, nil
 }
 
-func (c *Client) GetDHCPStaticLease(mac string) (*DHCPStaticLease, error) {
-	leases, err := c.ListDHCPStaticLeases()
+func (c *Client) GetDHCPStaticLease(ctx context.Context, mac string) (*DHCPStaticLease, error) {
+	leases, err := c.ListDHCPStaticLeases(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -86,10 +87,10 @@ func (c *Client) GetDHCPStaticLease(mac string) (*DHCPStaticLease, error) {
 	return nil, &ErrNotFound{Resource: "DHCP static lease", ID: mac}
 }
 
-func (c *Client) CreateDHCPStaticLease(lease DHCPStaticLease) error {
+func (c *Client) CreateDHCPStaticLease(ctx context.Context, lease DHCPStaticLease) error {
 	entry := formatDHCPEntry(lease)
 	path := fmt.Sprintf("/config/dhcp/hosts/%s?restart=false", url.PathEscape(entry))
-	resp, err := c.doRequest(http.MethodPut, path, nil)
+	resp, err := c.doRequest(ctx, http.MethodPut, path, nil)
 	if err != nil {
 		return fmt.Errorf("creating DHCP static lease: %w", err)
 	}
@@ -104,22 +105,25 @@ func (c *Client) CreateDHCPStaticLease(lease DHCPStaticLease) error {
 	return apiErr
 }
 
-func (c *Client) UpdateDHCPStaticLease(oldLease, newLease DHCPStaticLease) error {
-	if err := c.DeleteDHCPStaticLease(oldLease); err != nil {
+func (c *Client) UpdateDHCPStaticLease(ctx context.Context, oldLease, newLease DHCPStaticLease) error {
+	if err := c.DeleteDHCPStaticLease(ctx, oldLease); err != nil {
 		return fmt.Errorf("updating DHCP static lease (delete old): %w", err)
 	}
-	if err := c.CreateDHCPStaticLease(newLease); err != nil {
-		// Attempt to restore the old lease on failure
-		_ = c.CreateDHCPStaticLease(oldLease)
-		return fmt.Errorf("updating DHCP static lease (create new): %w", err)
+	if err := c.CreateDHCPStaticLease(ctx, newLease); err != nil {
+		// Attempt to restore the old lease on failure. Surface the restore
+		// outcome so the caller knows whether the old lease still exists.
+		if restoreErr := c.CreateDHCPStaticLease(ctx, oldLease); restoreErr != nil {
+			return fmt.Errorf("updating DHCP static lease (create new): %w; restoring old lease also failed: %v", err, restoreErr)
+		}
+		return fmt.Errorf("updating DHCP static lease (create new), old lease restored: %w", err)
 	}
 	return nil
 }
 
-func (c *Client) DeleteDHCPStaticLease(lease DHCPStaticLease) error {
+func (c *Client) DeleteDHCPStaticLease(ctx context.Context, lease DHCPStaticLease) error {
 	entry := formatDHCPEntry(lease)
 	path := fmt.Sprintf("/config/dhcp/hosts/%s?restart=false", url.PathEscape(entry))
-	resp, err := c.doRequest(http.MethodDelete, path, nil)
+	resp, err := c.doRequest(ctx, http.MethodDelete, path, nil)
 	if err != nil {
 		return fmt.Errorf("deleting DHCP static lease: %w", err)
 	}

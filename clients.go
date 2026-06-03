@@ -1,7 +1,7 @@
 package pihole
 
 import (
-	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -34,8 +34,8 @@ type clientsResponse struct {
 	Clients []PiholeClient `json:"clients"`
 }
 
-func (c *Client) ListClients() ([]PiholeClient, error) {
-	resp, err := c.doRequest(http.MethodGet, "/clients", nil)
+func (c *Client) ListClients(ctx context.Context) ([]PiholeClient, error) {
+	resp, err := c.doRequest(ctx, http.MethodGet, "/clients", nil)
 	if err != nil {
 		return nil, fmt.Errorf("listing clients: %w", err)
 	}
@@ -50,9 +50,9 @@ func (c *Client) ListClients() ([]PiholeClient, error) {
 	return result.Clients, nil
 }
 
-func (c *Client) GetClient(clientID string) (*PiholeClient, error) {
+func (c *Client) GetClient(ctx context.Context, clientID string) (*PiholeClient, error) {
 	path := fmt.Sprintf("/clients/%s", url.PathEscape(clientID))
-	resp, err := c.doRequest(http.MethodGet, path, nil)
+	resp, err := c.doRequest(ctx, http.MethodGet, path, nil)
 	if err != nil {
 		return nil, fmt.Errorf("getting client: %w", err)
 	}
@@ -73,12 +73,12 @@ func (c *Client) GetClient(clientID string) (*PiholeClient, error) {
 	return &result.Clients[0], nil
 }
 
-func (c *Client) CreateClient(req ClientCreateRequest) (*PiholeClient, error) {
+func (c *Client) CreateClient(ctx context.Context, req ClientCreateRequest) (*PiholeClient, error) {
 	body, err := json.Marshal(req)
 	if err != nil {
 		return nil, fmt.Errorf("marshaling client: %w", err)
 	}
-	resp, err := c.doRequest(http.MethodPost, "/clients", bytes.NewReader(body))
+	resp, err := c.doRequest(ctx, http.MethodPost, "/clients", body)
 	if err != nil {
 		return nil, fmt.Errorf("creating client: %w", err)
 	}
@@ -96,13 +96,13 @@ func (c *Client) CreateClient(req ClientCreateRequest) (*PiholeClient, error) {
 	return &result.Clients[0], nil
 }
 
-func (c *Client) UpdateClient(clientID string, req ClientUpdateRequest) (*PiholeClient, error) {
+func (c *Client) UpdateClient(ctx context.Context, clientID string, req ClientUpdateRequest) (*PiholeClient, error) {
 	body, err := json.Marshal(req)
 	if err != nil {
 		return nil, fmt.Errorf("marshaling client update: %w", err)
 	}
 	path := fmt.Sprintf("/clients/%s", url.PathEscape(clientID))
-	resp, err := c.doRequest(http.MethodPut, path, bytes.NewReader(body))
+	resp, err := c.doRequest(ctx, http.MethodPut, path, body)
 	if err != nil {
 		return nil, fmt.Errorf("updating client: %w", err)
 	}
@@ -120,9 +120,9 @@ func (c *Client) UpdateClient(clientID string, req ClientUpdateRequest) (*Pihole
 	return &result.Clients[0], nil
 }
 
-func (c *Client) DeleteClient(clientID string) error {
+func (c *Client) DeleteClient(ctx context.Context, clientID string) error {
 	path := fmt.Sprintf("/clients/%s", url.PathEscape(clientID))
-	resp, err := c.doRequest(http.MethodDelete, path, nil)
+	resp, err := c.doRequest(ctx, http.MethodDelete, path, nil)
 	if err != nil {
 		return fmt.Errorf("deleting client: %w", err)
 	}

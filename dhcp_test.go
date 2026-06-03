@@ -1,6 +1,7 @@
 package pihole
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"testing"
@@ -27,7 +28,7 @@ func TestListDHCPStaticLeases(t *testing.T) {
 	})
 	defer server.Close()
 
-	leases, err := client.ListDHCPStaticLeases()
+	leases, err := client.ListDHCPStaticLeases(context.Background())
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -55,7 +56,7 @@ func TestGetDHCPStaticLease(t *testing.T) {
 	})
 	defer server.Close()
 
-	lease, err := client.GetDHCPStaticLease("11:22:33:44:55:66")
+	lease, err := client.GetDHCPStaticLease(context.Background(), "11:22:33:44:55:66")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -77,7 +78,7 @@ func TestGetDHCPStaticLease_CaseInsensitive(t *testing.T) {
 	})
 	defer server.Close()
 
-	lease, err := client.GetDHCPStaticLease("aa:bb:cc:dd:ee:ff")
+	lease, err := client.GetDHCPStaticLease(context.Background(), "aa:bb:cc:dd:ee:ff")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -99,7 +100,7 @@ func TestGetDHCPStaticLease_NotFound(t *testing.T) {
 	})
 	defer server.Close()
 
-	_, err := client.GetDHCPStaticLease("00:00:00:00:00:00")
+	_, err := client.GetDHCPStaticLease(context.Background(), "00:00:00:00:00:00")
 	if err == nil {
 		t.Fatal("expected error for missing lease")
 	}
@@ -121,7 +122,7 @@ func TestCreateDHCPStaticLease(t *testing.T) {
 	})
 	defer server.Close()
 
-	err := client.CreateDHCPStaticLease(DHCPStaticLease{
+	err := client.CreateDHCPStaticLease(context.Background(), DHCPStaticLease{
 		MAC:      "11:22:33:44:55:66",
 		IP:       "192.168.1.100",
 		Hostname: "mynas",
@@ -140,7 +141,7 @@ func TestDeleteDHCPStaticLease(t *testing.T) {
 	})
 	defer server.Close()
 
-	err := client.DeleteDHCPStaticLease(DHCPStaticLease{
+	err := client.DeleteDHCPStaticLease(context.Background(), DHCPStaticLease{
 		MAC: "11:22:33:44:55:66",
 		IP:  "192.168.1.100",
 	})

@@ -1,6 +1,7 @@
 package pihole
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -20,7 +21,7 @@ func TestListClients(t *testing.T) {
 		})
 	})
 	defer server.Close()
-	clients, err := client.ListClients()
+	clients, err := client.ListClients(context.Background())
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -45,7 +46,7 @@ func TestGetClient(t *testing.T) {
 		})
 	})
 	defer server.Close()
-	cl, err := client.GetClient("192.168.1.100")
+	cl, err := client.GetClient(context.Background(), "192.168.1.100")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -73,7 +74,7 @@ func TestCreateClient(t *testing.T) {
 		})
 	})
 	defer server.Close()
-	cl, err := client.CreateClient(ClientCreateRequest{Client: "192.168.1.200", Comment: "new device", Groups: []int{0}})
+	cl, err := client.CreateClient(context.Background(), ClientCreateRequest{Client: "192.168.1.200", Comment: "new device", Groups: []int{0}})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -95,7 +96,7 @@ func TestUpdateClient(t *testing.T) {
 		})
 	})
 	defer server.Close()
-	cl, err := client.UpdateClient("192.168.1.100", ClientUpdateRequest{Comment: "updated", Groups: []int{0, 1}})
+	cl, err := client.UpdateClient(context.Background(), "192.168.1.100", ClientUpdateRequest{Comment: "updated", Groups: []int{0, 1}})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -112,7 +113,7 @@ func TestDeleteClient(t *testing.T) {
 		w.WriteHeader(http.StatusNoContent)
 	})
 	defer server.Close()
-	err := client.DeleteClient("192.168.1.100")
+	err := client.DeleteClient(context.Background(), "192.168.1.100")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

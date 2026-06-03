@@ -1,6 +1,7 @@
 package pihole
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"testing"
@@ -24,7 +25,7 @@ func TestListCNAMERecords(t *testing.T) {
 	})
 	defer server.Close()
 
-	records, err := client.ListCNAMERecords()
+	records, err := client.ListCNAMERecords(context.Background())
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -52,7 +53,7 @@ func TestGetCNAMERecord(t *testing.T) {
 	})
 	defer server.Close()
 
-	record, err := client.GetCNAMERecord("alias.lan")
+	record, err := client.GetCNAMERecord(context.Background(), "alias.lan")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -74,7 +75,7 @@ func TestGetCNAMERecord_NotFound(t *testing.T) {
 	})
 	defer server.Close()
 
-	_, err := client.GetCNAMERecord("missing.lan")
+	_, err := client.GetCNAMERecord(context.Background(), "missing.lan")
 	if err == nil {
 		t.Fatal("expected error")
 	}
@@ -92,7 +93,7 @@ func TestCreateCNAMERecord(t *testing.T) {
 	})
 	defer server.Close()
 
-	err := client.CreateCNAMERecord("alias.lan", "target.lan", 0)
+	err := client.CreateCNAMERecord(context.Background(), "alias.lan", "target.lan", 0)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -104,7 +105,7 @@ func TestCreateCNAMERecord_WithTTL(t *testing.T) {
 	})
 	defer server.Close()
 
-	err := client.CreateCNAMERecord("alias.lan", "target.lan", 3600)
+	err := client.CreateCNAMERecord(context.Background(), "alias.lan", "target.lan", 3600)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -119,7 +120,7 @@ func TestDeleteCNAMERecord(t *testing.T) {
 	})
 	defer server.Close()
 
-	err := client.DeleteCNAMERecord("alias.lan", "target.lan", 0)
+	err := client.DeleteCNAMERecord(context.Background(), "alias.lan", "target.lan", 0)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

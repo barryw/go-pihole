@@ -1,6 +1,7 @@
 package pihole
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -20,7 +21,7 @@ func TestListAdlists(t *testing.T) {
 		})
 	})
 	defer server.Close()
-	lists, err := client.ListAdlists()
+	lists, err := client.ListAdlists(context.Background())
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -42,7 +43,7 @@ func TestGetAdlist(t *testing.T) {
 		})
 	})
 	defer server.Close()
-	list, err := client.GetAdlist("https://example.com/list.txt")
+	list, err := client.GetAdlist(context.Background(), "https://example.com/list.txt")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -73,7 +74,7 @@ func TestCreateAdlist(t *testing.T) {
 		})
 	})
 	defer server.Close()
-	list, err := client.CreateAdlist(AdlistCreateRequest{Address: "https://example.com/list.txt", Type: "block", Groups: []int{0}, Enabled: true})
+	list, err := client.CreateAdlist(context.Background(), AdlistCreateRequest{Address: "https://example.com/list.txt", Type: "block", Groups: []int{0}, Enabled: true})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -95,7 +96,7 @@ func TestUpdateAdlist(t *testing.T) {
 		})
 	})
 	defer server.Close()
-	list, err := client.UpdateAdlist("https://example.com/list.txt", "block", AdlistUpdateRequest{Comment: "updated", Groups: []int{0, 1}, Enabled: true, Type: "block"})
+	list, err := client.UpdateAdlist(context.Background(), "https://example.com/list.txt", "block", AdlistUpdateRequest{Comment: "updated", Groups: []int{0, 1}, Enabled: true, Type: "block"})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -112,7 +113,7 @@ func TestDeleteAdlist(t *testing.T) {
 		w.WriteHeader(http.StatusNoContent)
 	})
 	defer server.Close()
-	err := client.DeleteAdlist("https://example.com/list.txt", "block")
+	err := client.DeleteAdlist(context.Background(), "https://example.com/list.txt", "block")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

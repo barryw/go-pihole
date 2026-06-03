@@ -1,7 +1,7 @@
 package pihole
 
 import (
-	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -11,20 +11,27 @@ import (
 
 // GetConfig reads a config value by its dot-notation path (e.g. "webserver.api.app_sudo").
 // Returns the raw JSON-encoded value. Returns ErrNotFound if the path doesn't exist.
-func (c *Client) GetConfig(key string) (json.RawMessage, error) {
+func (c *Client) GetConfig(ctx context.Context, key string) (json.RawMessage, error) {
 	apiPath := configKeyToAPIPath(key)
-	resp, err := c.doRequest(http.MethodGet, apiPath, nil)
+	resp, err := c.doRequest(ctx, http.MethodGet, apiPath, nil)
 	if err != nil {
 		return nil, fmt.Errorf("getting config %s: %w", key, err)
 	}
 	defer resp.Body.Close()
 
+	if resp.StatusCode == http.StatusNotFound {
+		return nil, &ErrNotFound{Resource: "config setting", ID: key}
+	}
 	if resp.StatusCode != http.StatusOK {
 		return nil, parseError(resp)
 	}
 
+	dec := json.NewDecoder(resp.Body)
+	// Preserve numeric literals (don't coerce integers to float64, which loses
+	// precision above 2^53 and would round-trip e.g. 1000000000000 as 1e+12).
+	dec.UseNumber()
 	var result map[string]interface{}
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+	if err := dec.Decode(&result); err != nil {
 		return nil, fmt.Errorf("decoding config response: %w", err)
 	}
 
@@ -45,27 +52,25 @@ func (c *Client) GetConfig(key string) (json.RawMessage, error) {
 
 // SetConfig writes a config value using PATCH /api/config.
 // The value should be a JSON-encoded value (e.g. json.RawMessage from jsonencode).
-// Returns ErrNotFound if the path doesn't exist (verified via GET before PATCH).
-func (c *Client) SetConfig(key string, value json.RawMessage) error {
-	// Verify the path exists first
-	_, err := c.GetConfig(key)
-	if err != nil {
-		return err
-	}
-
-	// Build the nested config object for PATCH
+// Returns ErrNotFound if the path doesn't exist.
+func (c *Client) SetConfig(ctx context.Context, key string, value json.RawMessage) error {
+	// Build the nested config object for PATCH. The API validates the path
+	// itself and returns 404 for an unknown key, so no pre-flight GET is needed.
 	body := buildNestedConfig(key, value)
 	bodyBytes, err := json.Marshal(body)
 	if err != nil {
 		return fmt.Errorf("marshaling config patch: %w", err)
 	}
 
-	resp, err := c.doRequest(http.MethodPatch, "/config", bytes.NewReader(bodyBytes))
+	resp, err := c.doRequest(ctx, http.MethodPatch, "/config", bodyBytes)
 	if err != nil {
 		return fmt.Errorf("setting config %s: %w", key, err)
 	}
 	defer resp.Body.Close()
 
+	if resp.StatusCode == http.StatusNotFound {
+		return &ErrNotFound{Resource: "config setting", ID: key}
+	}
 	if resp.StatusCode != http.StatusOK {
 		return parseError(resp)
 	}

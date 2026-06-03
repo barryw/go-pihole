@@ -1,6 +1,7 @@
 package pihole
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -25,7 +26,7 @@ func TestGetConfig(t *testing.T) {
 	})
 	defer server.Close()
 
-	val, err := client.GetConfig("webserver.api.app_sudo")
+	val, err := client.GetConfig(context.Background(), "webserver.api.app_sudo")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -47,7 +48,7 @@ func TestGetConfig_Int(t *testing.T) {
 	})
 	defer server.Close()
 
-	val, err := client.GetConfig("dns.blockTTL")
+	val, err := client.GetConfig(context.Background(), "dns.blockTTL")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -72,7 +73,7 @@ func TestGetConfig_String(t *testing.T) {
 	})
 	defer server.Close()
 
-	val, err := client.GetConfig("dns.blocking.mode")
+	val, err := client.GetConfig(context.Background(), "dns.blocking.mode")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -90,7 +91,7 @@ func TestGetConfig_NotFound(t *testing.T) {
 	})
 	defer server.Close()
 
-	_, err := client.GetConfig("fake.nonexistent")
+	_, err := client.GetConfig(context.Background(), "fake.nonexistent")
 	if err == nil {
 		t.Fatal("expected error for nonexistent path")
 	}
@@ -100,21 +101,11 @@ func TestGetConfig_NotFound(t *testing.T) {
 }
 
 func TestSetConfig(t *testing.T) {
-	getCalled := false
 	patchCalled := false
 
 	server, client := newTestServer(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == http.MethodGet && r.URL.Path == "/api/config/dns/blockTTL" {
-			getCalled = true
-			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(map[string]interface{}{
-				"config": map[string]interface{}{
-					"dns": map[string]interface{}{
-						"blockTTL": 2,
-					},
-				},
-			})
-			return
+		if r.Method == http.MethodGet {
+			t.Errorf("SetConfig must not pre-flight GET; got GET %s", r.URL.Path)
 		}
 		if r.Method == http.MethodPatch && r.URL.Path == "/api/config" {
 			patchCalled = true
@@ -145,12 +136,9 @@ func TestSetConfig(t *testing.T) {
 	})
 	defer server.Close()
 
-	err := client.SetConfig("dns.blockTTL", json.RawMessage(`5`))
+	err := client.SetConfig(context.Background(), "dns.blockTTL", json.RawMessage(`5`))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
-	}
-	if !getCalled {
-		t.Error("expected GET to validate path")
 	}
 	if !patchCalled {
 		t.Error("expected PATCH to set value")
@@ -159,14 +147,16 @@ func TestSetConfig(t *testing.T) {
 
 func TestSetConfig_NotFound(t *testing.T) {
 	server, client := newTestServer(func(w http.ResponseWriter, r *http.Request) {
+		// The API rejects an unknown config path with 404 on the PATCH itself.
 		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusNotFound)
 		json.NewEncoder(w).Encode(map[string]interface{}{
-			"config": map[string]interface{}{},
+			"error": map[string]interface{}{"key": "not_found", "message": "no such config item"},
 		})
 	})
 	defer server.Close()
 
-	err := client.SetConfig("fake.path", json.RawMessage(`true`))
+	err := client.SetConfig(context.Background(), "fake.path", json.RawMessage(`true`))
 	if err == nil {
 		t.Fatal("expected error for nonexistent path")
 	}

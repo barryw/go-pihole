@@ -1,7 +1,7 @@
 package pihole
 
 import (
-	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -43,8 +43,8 @@ type adlistsResponse struct {
 	Lists []Adlist `json:"lists"`
 }
 
-func (c *Client) ListAdlists() ([]Adlist, error) {
-	resp, err := c.doRequest(http.MethodGet, "/lists", nil)
+func (c *Client) ListAdlists(ctx context.Context) ([]Adlist, error) {
+	resp, err := c.doRequest(ctx, http.MethodGet, "/lists", nil)
 	if err != nil {
 		return nil, fmt.Errorf("listing adlists: %w", err)
 	}
@@ -59,9 +59,9 @@ func (c *Client) ListAdlists() ([]Adlist, error) {
 	return result.Lists, nil
 }
 
-func (c *Client) GetAdlist(address string) (*Adlist, error) {
+func (c *Client) GetAdlist(ctx context.Context, address string) (*Adlist, error) {
 	path := fmt.Sprintf("/lists/%s", url.PathEscape(address))
-	resp, err := c.doRequest(http.MethodGet, path, nil)
+	resp, err := c.doRequest(ctx, http.MethodGet, path, nil)
 	if err != nil {
 		return nil, fmt.Errorf("getting adlist: %w", err)
 	}
@@ -82,13 +82,13 @@ func (c *Client) GetAdlist(address string) (*Adlist, error) {
 	return &result.Lists[0], nil
 }
 
-func (c *Client) CreateAdlist(req AdlistCreateRequest) (*Adlist, error) {
+func (c *Client) CreateAdlist(ctx context.Context, req AdlistCreateRequest) (*Adlist, error) {
 	body, err := json.Marshal(req)
 	if err != nil {
 		return nil, fmt.Errorf("marshaling adlist: %w", err)
 	}
 	path := fmt.Sprintf("/lists?type=%s", url.QueryEscape(req.Type))
-	resp, err := c.doRequest(http.MethodPost, path, bytes.NewReader(body))
+	resp, err := c.doRequest(ctx, http.MethodPost, path, body)
 	if err != nil {
 		return nil, fmt.Errorf("creating adlist: %w", err)
 	}
@@ -106,13 +106,13 @@ func (c *Client) CreateAdlist(req AdlistCreateRequest) (*Adlist, error) {
 	return &result.Lists[0], nil
 }
 
-func (c *Client) UpdateAdlist(address, listType string, req AdlistUpdateRequest) (*Adlist, error) {
+func (c *Client) UpdateAdlist(ctx context.Context, address, listType string, req AdlistUpdateRequest) (*Adlist, error) {
 	body, err := json.Marshal(req)
 	if err != nil {
 		return nil, fmt.Errorf("marshaling adlist update: %w", err)
 	}
 	path := fmt.Sprintf("/lists/%s?type=%s", url.PathEscape(address), url.QueryEscape(listType))
-	resp, err := c.doRequest(http.MethodPut, path, bytes.NewReader(body))
+	resp, err := c.doRequest(ctx, http.MethodPut, path, body)
 	if err != nil {
 		return nil, fmt.Errorf("updating adlist: %w", err)
 	}
@@ -130,9 +130,9 @@ func (c *Client) UpdateAdlist(address, listType string, req AdlistUpdateRequest)
 	return &result.Lists[0], nil
 }
 
-func (c *Client) DeleteAdlist(address, listType string) error {
+func (c *Client) DeleteAdlist(ctx context.Context, address, listType string) error {
 	path := fmt.Sprintf("/lists/%s?type=%s", url.PathEscape(address), url.QueryEscape(listType))
-	resp, err := c.doRequest(http.MethodDelete, path, nil)
+	resp, err := c.doRequest(ctx, http.MethodDelete, path, nil)
 	if err != nil {
 		return fmt.Errorf("deleting adlist: %w", err)
 	}

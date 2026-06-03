@@ -1,6 +1,7 @@
 package pihole
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -21,7 +22,7 @@ func TestListDomains(t *testing.T) {
 		})
 	})
 	defer server.Close()
-	domains, err := client.ListDomains()
+	domains, err := client.ListDomains(context.Background())
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -46,7 +47,7 @@ func TestListDomainsByTypeAndKind(t *testing.T) {
 		})
 	})
 	defer server.Close()
-	domains, err := client.ListDomainsByTypeAndKind("deny", "exact")
+	domains, err := client.ListDomainsByTypeAndKind(context.Background(), "deny", "exact")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -68,7 +69,7 @@ func TestGetDomain(t *testing.T) {
 		})
 	})
 	defer server.Close()
-	domain, err := client.GetDomain("deny", "exact", "ads.example.com")
+	domain, err := client.GetDomain(context.Background(), "deny", "exact", "ads.example.com")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -96,7 +97,7 @@ func TestCreateDomain(t *testing.T) {
 		})
 	})
 	defer server.Close()
-	domain, err := client.CreateDomain(DomainCreateRequest{Domain: "ads.example.com", Type: "deny", Kind: "exact", Groups: []int{0}, Enabled: true})
+	domain, err := client.CreateDomain(context.Background(), DomainCreateRequest{Domain: "ads.example.com", Type: "deny", Kind: "exact", Groups: []int{0}, Enabled: true})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -118,7 +119,7 @@ func TestUpdateDomain(t *testing.T) {
 		})
 	})
 	defer server.Close()
-	domain, err := client.UpdateDomain("deny", "exact", "ads.example.com", DomainUpdateRequest{Comment: "updated", Groups: []int{0, 1}, Enabled: true, Type: "deny", Kind: "exact"})
+	domain, err := client.UpdateDomain(context.Background(), "deny", "exact", "ads.example.com", DomainUpdateRequest{Comment: "updated", Groups: []int{0, 1}, Enabled: true, Type: "deny", Kind: "exact"})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -135,7 +136,7 @@ func TestDeleteDomain(t *testing.T) {
 		w.WriteHeader(http.StatusNoContent)
 	})
 	defer server.Close()
-	err := client.DeleteDomain("deny", "exact", "ads.example.com")
+	err := client.DeleteDomain(context.Background(), "deny", "exact", "ads.example.com")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

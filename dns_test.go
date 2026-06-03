@@ -1,6 +1,7 @@
 package pihole
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"testing"
@@ -24,7 +25,7 @@ func TestListDNSRecords(t *testing.T) {
 	})
 	defer server.Close()
 
-	records, err := client.ListDNSRecords()
+	records, err := client.ListDNSRecords(context.Background())
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -49,7 +50,7 @@ func TestGetDNSRecord(t *testing.T) {
 	})
 	defer server.Close()
 
-	record, err := client.GetDNSRecord("myhost.lan")
+	record, err := client.GetDNSRecord(context.Background(), "myhost.lan")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -71,7 +72,7 @@ func TestGetDNSRecord_NotFound(t *testing.T) {
 	})
 	defer server.Close()
 
-	_, err := client.GetDNSRecord("missing.lan")
+	_, err := client.GetDNSRecord(context.Background(), "missing.lan")
 	if err == nil {
 		t.Fatal("expected error for missing record")
 	}
@@ -89,7 +90,7 @@ func TestCreateDNSRecord(t *testing.T) {
 	})
 	defer server.Close()
 
-	err := client.CreateDNSRecord("192.168.1.100", "myhost.lan")
+	err := client.CreateDNSRecord(context.Background(), "192.168.1.100", "myhost.lan")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -104,7 +105,7 @@ func TestDeleteDNSRecord(t *testing.T) {
 	})
 	defer server.Close()
 
-	err := client.DeleteDNSRecord("192.168.1.100", "myhost.lan")
+	err := client.DeleteDNSRecord(context.Background(), "192.168.1.100", "myhost.lan")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

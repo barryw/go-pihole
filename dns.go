@@ -1,6 +1,7 @@
 package pihole
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -21,8 +22,8 @@ type dnsHostsResponse struct {
 	} `json:"config"`
 }
 
-func (c *Client) ListDNSRecords() ([]DNSRecord, error) {
-	resp, err := c.doRequest(http.MethodGet, "/config/dns/hosts", nil)
+func (c *Client) ListDNSRecords(ctx context.Context) ([]DNSRecord, error) {
+	resp, err := c.doRequest(ctx, http.MethodGet, "/config/dns/hosts", nil)
 	if err != nil {
 		return nil, fmt.Errorf("listing DNS records: %w", err)
 	}
@@ -49,8 +50,8 @@ func (c *Client) ListDNSRecords() ([]DNSRecord, error) {
 	return records, nil
 }
 
-func (c *Client) GetDNSRecord(domain string) (*DNSRecord, error) {
-	records, err := c.ListDNSRecords()
+func (c *Client) GetDNSRecord(ctx context.Context, domain string) (*DNSRecord, error) {
+	records, err := c.ListDNSRecords(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -62,10 +63,10 @@ func (c *Client) GetDNSRecord(domain string) (*DNSRecord, error) {
 	return nil, &ErrNotFound{Resource: "DNS record", ID: domain}
 }
 
-func (c *Client) CreateDNSRecord(ip, domain string) error {
+func (c *Client) CreateDNSRecord(ctx context.Context, ip, domain string) error {
 	entry := fmt.Sprintf("%s %s", ip, domain)
 	path := fmt.Sprintf("/config/dns/hosts/%s?restart=false", url.PathEscape(entry))
-	resp, err := c.doRequest(http.MethodPut, path, nil)
+	resp, err := c.doRequest(ctx, http.MethodPut, path, nil)
 	if err != nil {
 		return fmt.Errorf("creating DNS record: %w", err)
 	}
@@ -81,10 +82,10 @@ func (c *Client) CreateDNSRecord(ip, domain string) error {
 	return apiErr
 }
 
-func (c *Client) DeleteDNSRecord(ip, domain string) error {
+func (c *Client) DeleteDNSRecord(ctx context.Context, ip, domain string) error {
 	entry := fmt.Sprintf("%s %s", ip, domain)
 	path := fmt.Sprintf("/config/dns/hosts/%s?restart=false", url.PathEscape(entry))
-	resp, err := c.doRequest(http.MethodDelete, path, nil)
+	resp, err := c.doRequest(ctx, http.MethodDelete, path, nil)
 	if err != nil {
 		return fmt.Errorf("deleting DNS record: %w", err)
 	}

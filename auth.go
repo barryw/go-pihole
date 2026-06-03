@@ -2,6 +2,7 @@ package pihole
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -14,21 +15,27 @@ type authRequest struct {
 type authResponse struct {
 	Session struct {
 		Valid    bool   `json:"valid"`
-		SID     string `json:"sid"`
-		CSRF    string `json:"csrf"`
-		Validity int   `json:"validity"`
+		SID      string `json:"sid"`
+		CSRF     string `json:"csrf"`
+		Validity int    `json:"validity"`
 		Message  string `json:"message"`
 	} `json:"session"`
 }
 
-func (c *Client) authenticate() error {
+func (c *Client) authenticate(ctx context.Context) error {
 	body, err := json.Marshal(authRequest{Password: c.password})
 	if err != nil {
 		return fmt.Errorf("marshaling auth request: %w", err)
 	}
 
 	url := fmt.Sprintf("%s/api/auth", c.baseURL)
-	resp, err := c.httpClient.Post(url, "application/json", bytes.NewReader(body))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(body))
+	if err != nil {
+		return fmt.Errorf("creating auth request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return fmt.Errorf("auth request failed: %w", err)
 	}
@@ -46,13 +53,17 @@ func (c *Client) authenticate() error {
 		return fmt.Errorf("decoding auth response: %w", err)
 	}
 
-	if !authResp.Session.Valid {
-		return &ErrAuth{Message: authResp.Session.Message}
+	// PiHole v6 returns session.valid==true even for a wrong password, with a
+	// null sid and an explanatory message — so an empty sid is the real signal
+	// of failure, not the valid flag alone.
+	if !authResp.Session.Valid || authResp.Session.SID == "" {
+		msg := authResp.Session.Message
+		if msg == "" {
+			msg = "authentication did not return a session id"
+		}
+		return &ErrAuth{Message: msg}
 	}
 
-	c.mu.Lock()
-	c.sid = authResp.Session.SID
-	c.mu.Unlock()
-
+	c.setSession(authResp.Session.SID)
 	return nil
 }

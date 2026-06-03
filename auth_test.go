@@ -1,6 +1,7 @@
 package pihole
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -38,7 +39,7 @@ func TestAuthenticate_Success(t *testing.T) {
 	defer server.Close()
 
 	client, _ := NewClient(server.URL, "test-password")
-	err := client.authenticate()
+	err := client.authenticate(context.Background())
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -61,9 +62,36 @@ func TestAuthenticate_WrongPassword(t *testing.T) {
 	defer server.Close()
 
 	client, _ := NewClient(server.URL, "wrong-password")
-	err := client.authenticate()
+	err := client.authenticate(context.Background())
 	if err == nil {
 		t.Fatal("expected error for wrong password")
+	}
+}
+
+// TestAuthenticate_ValidTrueButNoSID guards against a real PiHole v6 quirk:
+// a wrong password returns HTTP 200 with session.valid==true but a null sid
+// and message "password incorrect". Treating that as success would silently
+// produce a sessionless client that 401s on every request.
+func TestAuthenticate_ValidTrueButNoSID(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"session": map[string]interface{}{
+				"valid":    true,
+				"totp":     false,
+				"sid":      nil,
+				"validity": -1,
+				"message":  "password incorrect",
+			},
+			"took": 0.001,
+		})
+	}))
+	defer server.Close()
+
+	client, _ := NewClient(server.URL, "bad-password")
+	err := client.authenticate(context.Background())
+	if err == nil {
+		t.Fatal("expected error when sid is null despite valid==true")
 	}
 }
 
@@ -81,7 +109,7 @@ func TestAuthenticate_SessionInvalid(t *testing.T) {
 	defer server.Close()
 
 	client, _ := NewClient(server.URL, "bad-password")
-	err := client.authenticate()
+	err := client.authenticate(context.Background())
 	if err == nil {
 		t.Fatal("expected error for invalid session")
 	}

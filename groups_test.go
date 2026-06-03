@@ -1,6 +1,7 @@
 package pihole
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -21,7 +22,7 @@ func TestListGroups(t *testing.T) {
 		})
 	})
 	defer server.Close()
-	groups, err := client.ListGroups()
+	groups, err := client.ListGroups(context.Background())
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -46,7 +47,7 @@ func TestGetGroup(t *testing.T) {
 		})
 	})
 	defer server.Close()
-	group, err := client.GetGroup("IoT")
+	group, err := client.GetGroup(context.Background(), "IoT")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -74,7 +75,7 @@ func TestCreateGroup(t *testing.T) {
 		})
 	})
 	defer server.Close()
-	group, err := client.CreateGroup(GroupCreateRequest{Name: "TestGroup", Comment: "test", Enabled: true})
+	group, err := client.CreateGroup(context.Background(), GroupCreateRequest{Name: "TestGroup", Comment: "test", Enabled: true})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -96,7 +97,7 @@ func TestUpdateGroup(t *testing.T) {
 		})
 	})
 	defer server.Close()
-	group, err := client.UpdateGroup("OldName", GroupUpdateRequest{Name: "NewName", Comment: "updated", Enabled: true})
+	group, err := client.UpdateGroup(context.Background(), "OldName", GroupUpdateRequest{Name: "NewName", Comment: "updated", Enabled: true})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -113,7 +114,7 @@ func TestDeleteGroup(t *testing.T) {
 		w.WriteHeader(http.StatusNoContent)
 	})
 	defer server.Close()
-	err := client.DeleteGroup("TestGroup")
+	err := client.DeleteGroup(context.Background(), "TestGroup")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

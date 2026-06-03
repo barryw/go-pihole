@@ -1,6 +1,7 @@
 package pihole
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -23,8 +24,8 @@ type cnameResponse struct {
 	} `json:"config"`
 }
 
-func (c *Client) ListCNAMERecords() ([]CNAMERecord, error) {
-	resp, err := c.doRequest(http.MethodGet, "/config/dns/cnameRecords", nil)
+func (c *Client) ListCNAMERecords(ctx context.Context) ([]CNAMERecord, error) {
+	resp, err := c.doRequest(ctx, http.MethodGet, "/config/dns/cnameRecords", nil)
 	if err != nil {
 		return nil, fmt.Errorf("listing CNAME records: %w", err)
 	}
@@ -47,8 +48,8 @@ func (c *Client) ListCNAMERecords() ([]CNAMERecord, error) {
 	return records, nil
 }
 
-func (c *Client) GetCNAMERecord(domain string) (*CNAMERecord, error) {
-	records, err := c.ListCNAMERecords()
+func (c *Client) GetCNAMERecord(ctx context.Context, domain string) (*CNAMERecord, error) {
+	records, err := c.ListCNAMERecords(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -60,10 +61,10 @@ func (c *Client) GetCNAMERecord(domain string) (*CNAMERecord, error) {
 	return nil, &ErrNotFound{Resource: "CNAME record", ID: domain}
 }
 
-func (c *Client) CreateCNAMERecord(domain, target string, ttl int) error {
+func (c *Client) CreateCNAMERecord(ctx context.Context, domain, target string, ttl int) error {
 	entry := formatCNAMEEntry(domain, target, ttl)
 	path := fmt.Sprintf("/config/dns/cnameRecords/%s?restart=false", url.PathEscape(entry))
-	resp, err := c.doRequest(http.MethodPut, path, nil)
+	resp, err := c.doRequest(ctx, http.MethodPut, path, nil)
 	if err != nil {
 		return fmt.Errorf("creating CNAME record: %w", err)
 	}
@@ -78,10 +79,10 @@ func (c *Client) CreateCNAMERecord(domain, target string, ttl int) error {
 	return apiErr
 }
 
-func (c *Client) DeleteCNAMERecord(domain, target string, ttl int) error {
+func (c *Client) DeleteCNAMERecord(ctx context.Context, domain, target string, ttl int) error {
 	entry := formatCNAMEEntry(domain, target, ttl)
 	path := fmt.Sprintf("/config/dns/cnameRecords/%s?restart=false", url.PathEscape(entry))
-	resp, err := c.doRequest(http.MethodDelete, path, nil)
+	resp, err := c.doRequest(ctx, http.MethodDelete, path, nil)
 	if err != nil {
 		return fmt.Errorf("deleting CNAME record: %w", err)
 	}
