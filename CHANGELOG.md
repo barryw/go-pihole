@@ -2,6 +2,16 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## v1.0.0 - 2026-06-03
+#### Documentation
+- update Go version requirement to 1.25 - (35861dd) - Barry Walker
+#### Features
+- add context support, fix concurrency/auth bugs, add DNS blocking + upstreams - (fa12b49) - Barry Walker
+#### Refactoring
+- replace pipeline files with config service template - (be75d40) - Barry Walker
+
+- - -
+
 ## v0.2.3 - 2026-03-22
 #### Bug Fixes
 - force pull plugin image to avoid stale cache - (d3c98a8) - Barry Walker
